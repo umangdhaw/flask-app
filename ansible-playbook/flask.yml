@@ -1,0 +1,37 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: False
+
+  vars:
+      repository_url: https://github.com/umangdhaw/flask-app.git
+      repository_path: /home/ec2-user/flask-app
+      flask_port: 5000
+
+  tasks:
+    - name: Install redis
+      shell: "amazon-linux-extras install redis4.0"
+
+    - name: Ensure redis is running
+      systemd:
+        state: started
+        name: redis
+
+    - name: Install rest of the packages
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+        - git
+        - python-pip
+
+    - name: Clone repository
+      git: repo='{{ repository_url }}' dest='{{ repository_path }}'
+
+    - name: Install requirements
+      pip: requirements='{{ repository_path }}/requirements.txt'
+
+    - name: start flask
+      shell: " nohup flask run --host=0.0.0.0 --port={{ flask_port }} > /var/log/flask.log 2>&1 &"
+      environment:
+        FLASK_APP: /home/ec2-user/flask-app/hello-world.py
